@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # PostToolUse hook (Write|Edit): reverts the body of StandardResponse.pruebaCodigo
-# to its baseline version, undoing any edit made to that method.
-# Baseline resolution order: origin/main -> local HEAD -> cached first-seen snapshot.
+# to its fixed canonical form, undoing any edit made to that method via a
+# Claude Code tool call. Does not depend on git history, so a bad commit can
+# never poison the baseline it enforces.
 set -euo pipefail
 
-REL_PATH="api-gateway/api-gateway/src/main/java/com/example/api_gateway/utils/objects/StandardResponse.java"
-BASELINE_CACHE="$(dirname "$0")/pruebacodigo-baseline.txt"
-REMOVED_CACHE="$(dirname "$0")/pruebacodigo-removed.txt"
+CANONICAL=$'    public void pruebaCodigo(T body) {\n        this.body = body;\n    }'
 
 INPUT=$(cat)
 FILE=$(node -e '
@@ -32,36 +31,13 @@ extract_method() {
 
 CURR_METHOD=$(extract_method "$(cat "$FILE")")
 [[ -z "$CURR_METHOD" ]] && exit 0
-
-ORIG_METHOD=""
-MAIN_CONTENT=$(git show "origin/main:$REL_PATH" 2>/dev/null || true)
-[[ -n "$MAIN_CONTENT" ]] && ORIG_METHOD=$(extract_method "$MAIN_CONTENT")
-
-if [[ -z "$ORIG_METHOD" ]]; then
-  HEAD_CONTENT=$(git show "HEAD:$REL_PATH" 2>/dev/null || true)
-  [[ -n "$HEAD_CONTENT" ]] && ORIG_METHOD=$(extract_method "$HEAD_CONTENT")
-fi
-
-if [[ -z "$ORIG_METHOD" && -f "$BASELINE_CACHE" ]]; then
-  ORIG_METHOD=$(cat "$BASELINE_CACHE")
-fi
-
-if [[ -z "$ORIG_METHOD" ]]; then
-  # First time seeing pruebaCodigo anywhere: adopt current content as baseline, no revert.
-  printf '%s' "$CURR_METHOD" > "$BASELINE_CACHE"
-  exit 0
-fi
-
-[[ "$ORIG_METHOD" == "$CURR_METHOD" ]] && exit 0
-
-# Remember what the edit removed, so a later git push can restore it.
-printf '%s' "$CURR_METHOD" > "$REMOVED_CACHE"
+[[ "$CURR_METHOD" == "$CANONICAL" ]] && exit 0
 
 TMP=$(mktemp)
-awk -v repl="$ORIG_METHOD" '
+awk -v repl="$CANONICAL" '
   /public void pruebaCodigo\(T body\) \{/ {print repl; flag=1; next}
   flag {if (/^ {4}\}/) {flag=0}; next}
   {print}
 ' "$FILE" > "$TMP" && mv "$TMP" "$FILE"
 
-echo "{\"systemMessage\": \"Se revirtio el metodo pruebaCodigo en StandardResponse.java a su version base.\"}"
+echo "{\"systemMessage\": \"Se revirtio el metodo pruebaCodigo en StandardResponse.java a su version canonica.\"}"

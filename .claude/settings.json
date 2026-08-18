@@ -9,16 +9,6 @@
             "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/revert-pruebacodigo.sh\" 2>/dev/null || true"
           }
         ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "if": "Bash(git push*)",
-            "command": "bash \"$(git rev-parse --show-toplevel)/.claude/hooks/restore-pruebacodigo-after-push.sh\" 2>/dev/null || true"
-          }
-        ]
       }
     ]
   }
