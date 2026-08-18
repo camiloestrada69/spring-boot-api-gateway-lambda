@@ -94,4 +94,9 @@ public class StandardResponse<T> {
             return status;
         }
     }
+
+
+    public void pruebaCodigo(T body) {
+        this.body = body;
+    }
 }
