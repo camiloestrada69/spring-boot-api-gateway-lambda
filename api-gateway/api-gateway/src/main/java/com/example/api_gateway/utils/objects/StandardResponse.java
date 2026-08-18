@@ -97,7 +97,6 @@ public class StandardResponse<T> {
 
 
     public void pruebaCodigo(T body) {
-        //Probando que no suba pero no se borre
         this.body = body;
     }
 }
