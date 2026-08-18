@@ -6,6 +6,7 @@ set -euo pipefail
 
 REL_PATH="api-gateway/api-gateway/src/main/java/com/example/api_gateway/utils/objects/StandardResponse.java"
 BASELINE_CACHE="$(dirname "$0")/pruebacodigo-baseline.txt"
+REMOVED_CACHE="$(dirname "$0")/pruebacodigo-removed.txt"
 
 INPUT=$(cat)
 FILE=$(node -e '
@@ -52,6 +53,9 @@ if [[ -z "$ORIG_METHOD" ]]; then
 fi
 
 [[ "$ORIG_METHOD" == "$CURR_METHOD" ]] && exit 0
+
+# Remember what the edit removed, so a later git push can restore it.
+printf '%s' "$CURR_METHOD" > "$REMOVED_CACHE"
 
 TMP=$(mktemp)
 awk -v repl="$ORIG_METHOD" '
